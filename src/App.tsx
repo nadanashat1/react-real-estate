@@ -96,11 +96,26 @@ function AppContent() {
   const detailId = location.pathname.match(/^\/home-details\/(\d+)$/)?.[1];
   const refresh = () => setRevision((v) => v + 1);
   useEffect(() => {
-    if (!user) return;
-    const stream = new EventSource("/api/events");
-    stream.onmessage = () => refresh();
-    return () => stream.close();
-  }, [user?.id]);
+    if (!user || !["inbox", "viewings"].includes(view)) return;
+    // Short, bounded requests work across serverless instances without
+    // relying on a long-lived response being streamed by the host.
+    let active = true;
+    let timer: ReturnType<typeof setTimeout>;
+    const update = async () => {
+      if (document.visibilityState === "visible") {
+        try {
+          const data = await api("/inquiries");
+          if (active) setThreads(data.threads);
+        } catch {}
+      }
+      if (active) timer = setTimeout(update, 5000);
+    };
+    timer = setTimeout(update, 5000);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [user?.id, view]);
   useEffect(() => {
     api("/auth/me")
       .then((x) => setUser(x.user))
