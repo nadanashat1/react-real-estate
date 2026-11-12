@@ -1,40 +1,11 @@
-# Use an official Node.js runtime as the base image
-FROM node:18-bullseye
-
-# Set the TERM environment variable to xterm
-ENV TERM xterm
-
-# Install required packages
-RUN apt-get update && apt-get install -y \
-    libgtk2.0-0 \
-    libgtk-3-0 \
-    libgbm-dev \
-    libnotify-dev \
-    libgconf-2-4 \
-    libnss3 \
-    libxss1 \
-    libasound2 \
-    libxtst6 \
-    xauth \
-    xvfb \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set the working directory in the container
+FROM node:22-bookworm-slim
 WORKDIR /app
-
-# Copy package.json and package-lock.json to the container
+COPY package*.json ./
+RUN npm ci
 COPY . .
-
-# Install project dependencies
-RUN npm install
-
-ARG BUILD_COMMAND=build
-
-# Build the React app
-RUN npm run ${BUILD_COMMAND}
-
-# Expose a port (e.g., 3000) for your React app to run
-EXPOSE 3000
-
-# Serve the built React app
-CMD [ "npx", "serve", "-s", "build" ]
+RUN npm run build && npm prune --omit=dev
+ENV NODE_ENV=production HOST=0.0.0.0 PORT=4174 DATA_DIR=/var/real-estate
+EXPOSE 4174
+CMD ["node", "--experimental-sqlite", "server/index.mjs"]
+# For local SQLite mode, mount a persistent volume at /var/real-estate.
+# On ephemeral hosts use DATABASE_URL which stores capped demo image bytes in the database.

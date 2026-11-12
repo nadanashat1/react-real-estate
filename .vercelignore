@@ -1,0 +1,11 @@
+.git
+node_modules
+data
+test-artifacts
+.env
+.env.*
+legacy
+src/App.legacy.tsx
+src/assets/images
+README.legacy.md
+tests
